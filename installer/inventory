@@ -6,10 +6,10 @@ localhost ansible_connection=local ansible_python_interpreter="/usr/bin/env pyth
 # Otherwise the setup playbook will install the official Ansible images. Versions may
 # be selected based on: latest, 1, 1.0, 1.0.0, 1.0.0.123
 # by default the base will be used to search for ansible/awx
-dockerhub_base=ansible
+containerhub_base=ansible
 
 # Openshift Install
-# Will need to set -e openshift_password=developer -e docker_registry_password=$(oc whoami -t)
+# Will need to set -e openshift_password=developer -e container_registry_password=$(oc whoami -t)
 #           or set -e openshift_token=TOKEN
 # openshift_host=127.0.0.1:8443
 # openshift_project=awx
@@ -62,22 +62,23 @@ dockerhub_base=ansible
 # Common Docker parameters
 awx_task_hostname=awx
 awx_web_hostname=awxweb
-postgres_data_dir="~/.awx/pgdocker"
+postgres_data_dir="~/.awx/pgcontainer"
 host_port=80
 host_port_ssl=443
 #ssl_certificate=
 # Optional key file
 #ssl_certificate_key=
-docker_compose_dir="~/.awx/awxcompose"
+container_compose_dir="~/.awx/awxcompose"
+
 
 # Required for Openshift when building the image on your own
 # Optional for Openshift if using Dockerhub or another prebuilt registry
 # Required for Docker Compose Install if building the image on your own
 # Optional for Docker Compose Install if using Dockerhub or another prebuilt registry
 # Define if you want the image pushed to a registry. The container definition will also use these images
-# docker_registry=172.30.1.1:5000
-# docker_registry_repository=awx
-# docker_registry_username=developer
+# container_registry=172.30.1.1:5000
+# container_registry_repository=awx
+# container_registry_username=developer
 
 
 # Set pg_hostname if you have an external postgres server, otherwise
@@ -147,7 +148,7 @@ secret_key=awxsecret
 #awx_alternate_dns_servers="10.1.2.3,10.2.3.4"
 
 # AWX project data folder. If you need access to the location where AWX stores the projects
-# it manages from the docker host, you can set this to turn it into a volume for the container.
+# it manages from the container host, you can set this to turn it into a volume for the container.
 #project_data_dir=/var/lib/awx/projects
 
 # AWX custom virtual environment folder. Only usable for local install.
@@ -167,7 +168,7 @@ secret_key=awxsecret
 #extra_nginx_include="/etc/nginx/awx_extra[.]conf"
 
 # Docker compose explicit subnet. Set to avoid overlapping your existing LAN networks.
-#docker_compose_subnet="172.17.0.1/16"
+#container_compose_subnet="172.17.0.1/16"
 #
 # Allow for different docker logging drivers
 # By Default; the logger will be json-file, however you can override
