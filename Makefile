@@ -23,7 +23,8 @@ VENV_BASE ?= /venv
 SCL_PREFIX ?=
 CELERY_SCHEDULE_FILE ?= /var/lib/awx/beat.db
 
-DEV_DOCKER_TAG_BASE ?= gcr.io/ansible-tower-engineering
+DEV_CONTAINER_TAG_BASE ?= gcr.io/ansible-tower-engineering
+DEV_CONTAINER_RUNTIME ?= docker
 # Python packages to install only from source (not from binary wheels)
 # Comma separated list
 SRC_ONLY_PKGS ?= cffi,pycparser,psycopg2,twilio,pycurl
@@ -635,9 +636,9 @@ wheel: dist/$(WHEEL_FILE)
 setup-bundle-build:
 	mkdir -p $@
 
-docker-auth:
+container-auth:
 	@if [ "$(IMAGE_REPOSITORY_AUTH)" ]; then \
-		echo "$(IMAGE_REPOSITORY_AUTH)" | docker login -u oauth2accesstoken --password-stdin $(IMAGE_REPOSITORY_BASE); \
+		echo "$(IMAGE_REPOSITORY_AUTH)" | $(DEV_CONTAINER_RUNTIME) login -u oauth2accesstoken --password-stdin $(IMAGE_REPOSITORY_BASE); \
 	fi;
 
 # This directory is bind-mounted inside of the development container and
@@ -647,80 +648,80 @@ awx/projects:
 	@mkdir -p $@
 
 # Docker isolated rampart
-docker-compose-isolated: awx/projects
-	CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_DOCKER_TAG_BASE=$(DEV_DOCKER_TAG_BASE) docker-compose -f tools/docker-compose.yml -f tools/docker-isolated-override.yml up
+container-compose-isolated: awx/projects
+	CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_CONTAINER_TAG_BASE=$(DEV_CONTAINER_TAG_BASE) $(DEV_CONTAINER_RUNTIME)-compose -f tools/docker-compose.yml -f tools/docker-isolated-override.yml up
 
 # Docker Compose Development environment
-docker-compose: docker-auth awx/projects
-	CURRENT_UID=$(shell id -u) OS="$(shell docker info | grep 'Operating System')" TAG=$(COMPOSE_TAG) DEV_DOCKER_TAG_BASE=$(DEV_DOCKER_TAG_BASE) docker-compose -f tools/docker-compose.yml up --no-recreate awx
+container-compose: container-auth awx/projects
+	CURRENT_UID=$(shell id -u) OS="$(shell $(DEV_CONTAINER_RUNTIME) info | grep 'Operating System')" TAG=$(COMPOSE_TAG) DEV_CONTAINER_TAG_BASE=$(DEV_CONTAINER_TAG_BASE) $(DEV_CONTAINER_RUNTIME)-compose -f tools/docker-compose.yml up --no-recreate awx
 
-docker-compose-cluster: docker-auth awx/projects
-	CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_DOCKER_TAG_BASE=$(DEV_DOCKER_TAG_BASE) docker-compose -f tools/docker-compose-cluster.yml up
+container-compose-cluster: container-auth awx/projects
+	CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_CONTAINER_TAG_BASE=$(DEV_CONTAINER_TAG_BASE) $(DEV_CONTAINER_RUNTIME)-compose -f tools/docker-compose-cluster.yml up
 
-docker-compose-credential-plugins: docker-auth awx/projects
-	echo -e "\033[0;31mTo generate a CyberArk Conjur API key: docker exec -it tools_conjur_1 conjurctl account create quick-start\033[0m"
-	CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_DOCKER_TAG_BASE=$(DEV_DOCKER_TAG_BASE) docker-compose -f tools/docker-compose.yml -f tools/docker-credential-plugins-override.yml up --no-recreate awx
+container-compose-credential-plugins: container-auth awx/projects
+	echo -e "\033[0;31mTo generate a CyberArk Conjur API key: $(DEV_CONTAINER_RUNTIME) exec -it tools_conjur_1 conjurctl account create quick-start\033[0m"
+	CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_CONTAINER_TAG_BASE=$(DEV_CONTAINER_TAG_BASE) $(DEV_CONTAINER_RUNTIME)-compose -f tools/docker-compose.yml -f tools/docker-credential-plugins-override.yml up --no-recreate awx
 
-docker-compose-test: docker-auth awx/projects
-	cd tools && CURRENT_UID=$(shell id -u) OS="$(shell docker info | grep 'Operating System')" TAG=$(COMPOSE_TAG) DEV_DOCKER_TAG_BASE=$(DEV_DOCKER_TAG_BASE) docker-compose run --rm --service-ports awx /bin/bash
+container-compose-test: container-auth awx/projects
+	cd tools && CURRENT_UID=$(shell id -u) OS="$(shell $(DEV_CONTAINER_RUNTIME) info | grep 'Operating System')" TAG=$(COMPOSE_TAG) DEV_CONTAINER_TAG_BASE=$(DEV_CONTAINER_TAG_BASE) $(DEV_CONTAINER_RUNTIME)-compose run --rm --service-ports awx /bin/bash
 
-docker-compose-runtest: awx/projects
-	cd tools && CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_DOCKER_TAG_BASE=$(DEV_DOCKER_TAG_BASE) docker-compose run --rm --service-ports awx /start_tests.sh
+container-compose-runtest: awx/projects
+	cd tools && CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_CONTAINER_TAG_BASE=$(DEV_CONTAINER_TAG_BASE) $(DEV_CONTAINER_RUNTIME)-compose run --rm --service-ports awx /start_tests.sh
 
-docker-compose-build-swagger: awx/projects
-	cd tools && CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_DOCKER_TAG_BASE=$(DEV_DOCKER_TAG_BASE) docker-compose run --rm --service-ports --no-deps awx /start_tests.sh swagger
+container-compose-build-swagger: awx/projects
+	cd tools && CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_CONTAINER_TAG_BASE=$(DEV_CONTAINER_TAG_BASE) $(DEV_CONTAINER_RUNTIME)-compose run --rm --service-ports --no-deps awx /start_tests.sh swagger
 
 detect-schema-change: genschema
 	curl https://s3.amazonaws.com/awx-public-ci-files/schema.json -o reference-schema.json
 	# Ignore differences in whitespace with -b
 	diff -u -b reference-schema.json schema.json
 
-docker-compose-clean: awx/projects
-	cd tools && TAG=$(COMPOSE_TAG) DEV_DOCKER_TAG_BASE=$(DEV_DOCKER_TAG_BASE) docker-compose rm -sf
+container-compose-clean: awx/projects
+	cd tools && TAG=$(COMPOSE_TAG) DEV_CONTAINER_TAG_BASE=$(DEV_CONTAINER_TAG_BASE) $(DEV_CONTAINER_RUNTIME)-compose rm -sf
 
 # Base development image build
-docker-compose-build:
+container-compose-build:
 	ansible localhost -m template -a "src=installer/roles/image_build/templates/Dockerfile.j2 dest=tools/docker-compose/Dockerfile" -e build_dev=True
-	docker build -t ansible/awx_devel -f tools/docker-compose/Dockerfile \
-		--cache-from=$(DEV_DOCKER_TAG_BASE)/awx_devel:$(COMPOSE_TAG) .
-	docker tag ansible/awx_devel $(DEV_DOCKER_TAG_BASE)/awx_devel:$(COMPOSE_TAG)
-	#docker push $(DEV_DOCKER_TAG_BASE)/awx_devel:$(COMPOSE_TAG)
+	$(DEV_CONTAINER_RUNTIME) build -t ansible/awx_devel -f tools/docker-compose/Dockerfile \
+		--cache-from=$(DEV_CONTAINER_TAG_BASE)/awx_devel:$(COMPOSE_TAG) .
+	$(DEV_CONTAINER_RUNTIME) tag ansible/awx_devel $(DEV_CONTAINER_TAG_BASE)/awx_devel:$(COMPOSE_TAG)
+	#$(DEV_CONTAINER_RUNTIME) push $(DEV_CONTAINER_TAG_BASE)/awx_devel:$(COMPOSE_TAG)
 
 # For use when developing on "isolated" AWX deployments
-docker-compose-isolated-build: docker-compose-build
-	docker build -t ansible/awx_isolated -f tools/docker-isolated/Dockerfile .
-	docker tag ansible/awx_isolated $(DEV_DOCKER_TAG_BASE)/awx_isolated:$(COMPOSE_TAG)
-	#docker push $(DEV_DOCKER_TAG_BASE)/awx_isolated:$(COMPOSE_TAG)
+container-compose-isolated-build: container-compose-build
+	$(DEV_CONTAINER_RUNTIME) build -t ansible/awx_isolated -f tools/docker-isolated/Dockerfile .
+	$(DEV_CONTAINER_RUNTIME) tag ansible/awx_isolated $(DEV_CONTAINER_TAG_BASE)/awx_isolated:$(COMPOSE_TAG)
+	#$(DEV_CONTAINER_RUNTIME) push $(DEV_CONTAINER_TAG_BASE)/awx_isolated:$(COMPOSE_TAG)
 
-docker-clean:
-	$(foreach container_id,$(shell docker ps -f name=tools_awx -aq),docker stop $(container_id); docker rm -f $(container_id);)
-	docker images | grep "awx_devel" | awk '{print $$1 ":" $$2}' | xargs docker rmi
+container-clean:
+	$(foreach container_id,$(shell $(DEV_CONTAINER_RUNTIME) ps -f name=tools_awx -aq),$(DEV_CONTAINER_RUNTIME) stop $(container_id); $(DEV_CONTAINER_RUNTIME) rm -f $(container_id);)
+	$(DEV_CONTAINER_RUNTIME) images | grep "awx_devel" | awk '{print $$1 ":" $$2}' | xargs $(DEV_CONTAINER_RUNTIME) rmi
 
-docker-clean-volumes: docker-compose-clean
-	docker volume rm tools_awx_db
+container-clean-volumes: container-compose-clean
+	$(DEV_CONTAINER_RUNTIME) volume rm tools_awx_db
 
-docker-refresh: docker-clean docker-compose
+container-refresh: container-clean container-compose
 
 # Docker Development Environment with Elastic Stack Connected
-docker-compose-elk: docker-auth awx/projects
-	CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_DOCKER_TAG_BASE=$(DEV_DOCKER_TAG_BASE) docker-compose -f tools/docker-compose.yml -f tools/elastic/docker-compose.logstash-link.yml -f tools/elastic/docker-compose.elastic-override.yml up --no-recreate
+container-compose-elk: container-auth awx/projects
+	CURRENT_UID=$(shell id -u) TAG=$(COMPOSE_TAG) DEV_CONTAINER_TAG_BASE=$(DEV_CONTAINER_TAG_BASE) $(DEV_CONTAINER_RUNTIME)-compose -f tools/docker-compose.yml -f tools/elastic/docker-compose.logstash-link.yml -f tools/elastic/docker-compose.elastic-override.yml up --no-recreate
 
-docker-compose-cluster-elk: docker-auth awx/projects
-	TAG=$(COMPOSE_TAG) DEV_DOCKER_TAG_BASE=$(DEV_DOCKER_TAG_BASE) docker-compose -f tools/docker-compose-cluster.yml -f tools/elastic/docker-compose.logstash-link-cluster.yml -f tools/elastic/docker-compose.elastic-override.yml up --no-recreate
+container-compose-cluster-elk: container-auth awx/projects
+	TAG=$(COMPOSE_TAG) DEV_CONTAINER_TAG_BASE=$(DEV_CONTAINER_TAG_BASE) $(DEV_CONTAINER_RUNTIME)-compose -f tools/docker-compose-cluster.yml -f tools/elastic/docker-compose.logstash-link-cluster.yml -f tools/elastic/docker-compose.elastic-override.yml up --no-recreate
 
 prometheus:
-	docker run -u0 --net=tools_default --link=`docker ps | egrep -o "tools_awx(_run)?_([^ ]+)?"`:awxweb --volume `pwd`/tools/prometheus:/prometheus --name prometheus -d -p 0.0.0.0:9090:9090 prom/prometheus --web.enable-lifecycle --config.file=/prometheus/prometheus.yml
+	$(DEV_CONTAINER_RUNTIME) run -u0 --net=tools_default --link=`$(DEV_CONTAINER_RUNTIME) ps | egrep -o "tools_awx(_run)?_([^ ]+)?"`:awxweb --volume `pwd`/tools/prometheus:/prometheus --name prometheus -d -p 0.0.0.0:9090:9090 prom/prometheus --web.enable-lifecycle --config.file=/prometheus/prometheus.yml
 
 clean-elk:
-	docker stop tools_kibana_1
-	docker stop tools_logstash_1
-	docker stop tools_elasticsearch_1
-	docker rm tools_logstash_1
-	docker rm tools_elasticsearch_1
-	docker rm tools_kibana_1
+	$(DEV_CONTAINER_RUNTIME) stop tools_kibana_1
+	$(DEV_CONTAINER_RUNTIME) stop tools_logstash_1
+	$(DEV_CONTAINER_RUNTIME) stop tools_elasticsearch_1
+	$(DEV_CONTAINER_RUNTIME) rm tools_logstash_1
+	$(DEV_CONTAINER_RUNTIME) rm tools_elasticsearch_1
+	$(DEV_CONTAINER_RUNTIME) rm tools_kibana_1
 
 psql-container:
-	docker run -it --net tools_default --rm postgres:10 sh -c 'exec psql -h "postgres" -p "5432" -U postgres'
+	$(DEV_CONTAINER_RUNTIME) run -it --net tools_default --rm postgres:10 sh -c 'exec psql -h "postgres" -p "5432" -U postgres'
 
 VERSION:
 	@echo "awx: $(VERSION)"

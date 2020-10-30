@@ -29,7 +29,7 @@ This document provides a guide for installing AWX.
     + [Post-install](#post-install-1)
     + [Accessing AWX](#accessing-awx-1)
     + [SSL Termination](#ssl-termination)
-  * [Docker-Compose](#docker-compose)
+  * [Docker-Compose / Podman-Compose](#docker-compose-/-podman-compose)
     + [Prerequisites](#prerequisites-3)
     + [Pre-install steps](#pre-install-steps-2)
       - [Deploying to a remote host](#deploying-to-a-remote-host)
@@ -116,17 +116,17 @@ When installing AWX you have the option of building your own image or using the 
 This is controlled by the following variables in the `inventory` file
 
 ```
-dockerhub_base=ansible
-dockerhub_version=latest
+containerhub_base=ansible
+containerhub_version=latest
 ```
 
 If these variables are present then all deployments will use these hosted images. If the variables are not present then the images will be built during the install.
 
-*dockerhub_base*
+*containerhub_base*
 
 > The base location on DockerHub where the images are hosted (by default this pulls a container image named `ansible/awx:tag`)
 
-*dockerhub_version*
+*containerhub_version*
 
 > Multiple versions are provided. `latest` always pulls the most recent. You may also select version numbers at different granularities: 1, 1.0, 1.0.1, 1.0.0.123
 
@@ -197,15 +197,15 @@ Before starting the install, review the [inventory](./installer/inventory) file,
 
 > Boolean. Set to True to use an emptyDir volume when deploying the PostgreSQL pod. Note: This should only be used for demo and testing purposes.
 
-*docker_registry*
+*container_registry*
 
 > IP address and port, or URL, for accessing a registry that the OpenShift cluster can access. Defaults to *172.30.1.1:5000*, the internal registry delivered with Minishift. This is not needed if you are using official hosted images.
 
-*docker_registry_repository*
+*container_registry_repository*
 
 > Namespace to use when pushing and pulling images to and from the registry. Generally this will match the project name. It defaults to *awx*. This is not needed if you are using official hosted images.
 
-*docker_registry_username*
+*container_registry_username*
 
 > Username of the user that will push images to the registry. Will generally match the *openshift_user* value. Defaults to *developer*. This is not needed if you are using official hosted images.
 
@@ -238,15 +238,15 @@ If you wish to use an external database, in the inventory file, set the value of
 
 ### Run the installer
 
-To start the install, you will pass two *extra* variables on the command line. The first is *openshift_password*, which is the password for the *openshift_user*, and the second is *docker_registry_password*, which is the password associated with *docker_registry_username*.
+To start the install, you will pass two *extra* variables on the command line. The first is *openshift_password*, which is the password for the *openshift_user*, and the second is *container_registry_password*, which is the password associated with *container_registry_username*.
 
-If you're using the OpenShift internal registry, then you'll pass an access token for the *docker_registry_password* value, rather than a password. The `oc whoami -t` command will generate the required token, as long as you're logged into the cluster via `oc cluster login`.
+If you're using the OpenShift internal registry, then you'll pass an access token for the *container_registry_password* value, rather than a password. The `oc whoami -t` command will generate the required token, as long as you're logged into the cluster via `oc cluster login`.
 
-Run the following command (docker_registry_password is optional if using official images):
+Run the following command (container_registry_password is optional if using official images):
 
 ```bash
 # Start the install
-$ ansible-playbook -i inventory install.yml -e openshift_password=developer  -e docker_registry_password=$(oc whoami -t)
+$ ansible-playbook -i inventory install.yml -e openshift_password=developer  -e container_registry_password=$(oc whoami -t)
 ```
 
 ### Post-install
@@ -378,9 +378,9 @@ Before starting the install process, review the [inventory](./installer/inventor
 
 > Name of the Kubernetes namespace where the AWX resources will be installed. This will be created if it doesn't exist
 
-*docker_registry_*
+*container_registry_*
 
-> These settings should be used if building your own base images. You'll need access to an external registry and are responsible for making sure your kube cluster can talk to it and use it. If these are undefined and the dockerhub_ configuration settings are uncommented then the images will be pulled from dockerhub instead
+> These settings should be used if building your own base images. You'll need access to an external registry and are responsible for making sure your kube cluster can talk to it and use it. If these are undefined and the containerhub_ configuration settings are uncommented then the images will be pulled from dockerhub instead
 
 ### Configuring Helm
 
@@ -437,14 +437,21 @@ If your provider is able to allocate an IP Address from the Ingress controller t
 Unlike Openshift's `Route` the Kubernetes `Ingress` doesn't yet handle SSL termination. As such the default configuration will only expose AWX through HTTP on port 80. You are responsible for configuring SSL support until support is added (either to Kubernetes or AWX itself).
 
 
-## Docker-Compose
+## Docker-Compose / Podman-Compose
 
 ### Prerequisites
 
+Select either one of the following combinations (`docker`/`docker-compose` or `podman`/`podman-compose` based on your choice of container runtime. If you don't know or don't have one, selecting `docker`/`docker-compose` is what you should pick as it's the most popular and most broadly compatible container runtime at the time of this writing.:
+
+For Docker:
 - [Docker](https://docs.docker.com/engine/installation/) on the host where AWX will be deployed. After installing Docker, the Docker service must be started (depending on your OS, you may have to add the local user that uses Docker to the ``docker`` group, refer to the documentation for details)
 - [docker-compose](https://pypi.org/project/docker-compose/) Python module.
     + This also installs the `docker` Python module, which is incompatible with `docker-py`. If you have previously installed `docker-py`, please uninstall it.
 - [Docker Compose](https://docs.docker.com/compose/install/).
+
+For Podman:
+- [Podman](https://podman.io) on the host where AWX will be deployed. 
+- [podman-compose](https://github.com/containers/podman-compose) utility.
 
 ### Pre-install steps
 
@@ -472,7 +479,7 @@ If you choose to use the official images then the remote host will be the one to
 
 > As mentioned above, in [Prerequisites](#prerequisites-1), the prerequisites are required on the remote host.
 
-> When deploying to a remote host, the playbook does not execute tasks with the `become` option. For this reason, make sure the user that connects to the remote host has privileges to run the `docker` command. This typically means that non-privileged users need to be part of the `docker` group.
+> When deploying to a remote host, the playbook does not execute tasks with the `become` option. For this reason, make sure the user that connects to the remote host has privileges when running with the `docker` container runtime option. This typically means that non-privileged users need to be part of the `docker` group.
 
 
 #### Inventory variables
@@ -495,9 +502,9 @@ Before starting the install process, review the [inventory](./installer/inventor
 
 > Optionally, provide the path to a file that contains a certificate and its private key. This needs to be a .pem-file
 
-*docker_compose_dir*
+*container_compose_dir*
 
-> When using docker-compose, the `docker-compose.yml` file will be created there (default `/tmp/awxcompose`).
+> When using docker-compose or podman-compose, the `docker-compose.yml` file will be created there (default `/tmp/awxcompose`).
 
 *custom_venv_dir*
 
@@ -511,15 +518,15 @@ Before starting the install process, review the [inventory](./installer/inventor
 
 If you wish to tag and push built images to a Docker registry, set the following variables in the inventory file:
 
-*docker_registry*
+*container_registry*
 
 > IP address and port, or URL, for accessing a registry.
 
-*docker_registry_repository*
+*container_registry_repository*
 
 > Namespace to use when pushing and pulling images to and from the registry. Defaults to *awx*.
 
-*docker_registry_username*
+*container_registry_username*
 
 > Username of the user that will push images to the registry. Defaults to *developer*.
 
@@ -560,27 +567,30 @@ $ cd installer
 $ ansible-playbook -i inventory install.yml
 ```
 
-If you're pushing built images to a repository, then use the `-e` option to pass the registry password as follows, replacing *password* with the password of the username assigned to `docker_registry_username` (note that you will also need to remove `dockerhub_base` and `dockerhub_version` from the inventory file):
+If you're pushing built images to a repository, then use the `-e` option to pass the registry password as follows, replacing *password* with the password of the username assigned to `container_registry_username` (note that you will also need to remove `containerhub_base` and `containerhub_version` from the inventory file):
 
 ```bash
 # Set the working directory to installer
 $ cd installer
 
 # Run the Ansible playbook
-$ ansible-playbook -i inventory -e docker_registry_password=password install.yml
+$ ansible-playbook -i inventory -e container_registry_password=password install.yml
 ```
 
 ### Post-install
 
-After the playbook run completes, Docker starts a series of containers that provide the services that make up AWX.  You can view the running containers using the `docker ps` command.
+After the playbook run completes, Docker starts a series of containers that provide the services that make up AWX.  You can view the running containers using the `docker ps` or `podman ps` command, depending on your container runtime choice.
 
-If you're deploying using Docker Compose, container names will be prefixed by the name of the folder where the docker-compose.yml file is created (by default, `awx`).
+If you're deploying using Docker Compose or Podman Compose, container names will be prefixed by the name of the folder where the docker-compose.yml file is created (by default, `awx`).
 
 Immediately after the containers start, the *awx_task* container will perform required setup tasks, including database migrations. These tasks need to complete before the web interface can be accessed. To monitor the progress, you can follow the container's STDOUT by running the following:
 
 ```bash
-# Tail the awx_task log
+# Tail the awx_task log with docker if you are using docker
 $ docker logs -f awx_task
+
+# Tail the awx_task log with podman if you are using podman
+$ podman logs -f awx_task
 ```
 
 You will see output similar to the following:

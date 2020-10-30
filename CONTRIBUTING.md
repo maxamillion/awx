@@ -11,6 +11,8 @@ Have questions about this document or anything not covered here? Come chat with 
   * [Prerequisites](#prerequisites)
     * [Docker](#docker)
     * [Docker compose](#docker-compose)
+    * [Podman](#podman)
+    * [Podman compose](#podman-compose)
     * [Node and npm](#node-and-npm)
   * [Build the environment](#build-the-environment)
     * [Fork and clone the AWX repo](#fork-and-clone-the-awx-repo)
@@ -42,7 +44,7 @@ Have questions about this document or anything not covered here? Come chat with 
 
 ## Setting up your development environment
 
-The AWX development environment workflow and toolchain is based on Docker, and the docker-compose tool, to provide dependencies, services, and databases necessary to run all of the components. It also binds the local source tree into the development container, making it possible to observe and test changes in real time.
+The AWX development environment workflow and toolchain is based on your choice or the Docker and the docker-compose tools or Podman and the podman-compose tool, to provide dependencies, services, and databases necessary to run all of the components. It also binds the local source tree into the development container, making it possible to observe and test changes in real time.
 
 ### Prerequisites
 
@@ -82,6 +84,18 @@ If you're not using Docker for Mac, or Docker for Windows, you may need, or choo
 ```bash
 (host)$ pip3 install docker-compose
 ```
+
+#### Podman
+
+As an alternative container runtime to Docker, we also make our tooling compatible with [podman](https://podman.io/).
+
+Prior to starting the development services, you'll need `podman` and `podman-compose`. On Linux, you can generally find these in your distro's packaging, but for some distributions there are alternative repositories available.
+
+[For all platforms, click here for podman installation instructions](https://podman.io/getting-started/installation)
+
+#### Podman compose
+
+Podman Compose is developed as a separate entity from Podman, it exists as a wrapper that provides compatibility with the `docker-compose` utility, but for the [podman](https://podman.io] container runtime. [Please follow the installation instructrions for podman-compose here](https://github.com/containers/podman-compose#installation)
 
 #### Frontend Development
 
