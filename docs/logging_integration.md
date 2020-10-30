@@ -58,9 +58,9 @@ project](https://github.com/deviantony/docker-elk):
 
 ```bash
 # Start a single server with links
-make docker-compose-elk
+CONTAINER_RUNTIME=docker make container-compose-elk
 # Start the HA cluster with links
-make docker-compose-cluster-elk
+CONTAINER_RUNTIME=docker make container-compose-cluster-elk
 ```
 
 For more instructions on getting started with the environment that this example spins
