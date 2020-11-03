@@ -49,7 +49,7 @@
 - name: Tag and Push Container Images (podman)
   block:
     - name: Tag and push awx image to registry (podman)
-      containers.podman.podman:
+      containers.podman.podman_image:
         name: "{{ awx_image }}"
         repository: "{{ container_registry }}/{{ container_registry_repository }}/{{ awx_image }}:{{ item }}"
         push: true

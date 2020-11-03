@@ -35,6 +35,8 @@
 
 - name: Clean distribution
   shell: make clean
+  environment:
+    DEV_CONTAINER_RUNTIME: "{{ container_runtime }}"
   args:
     chdir: ..
   ignore_errors: true
@@ -83,7 +85,7 @@
   when: use_container_for_build|default(true)|bool and (container_runtime == 'docker')
 
 - name: Build AWX distribution using podman
-  podman_container:
+  containers.podman.podman_container:
     image: "awx_sdist_builder:{{ awx_version }}"
     name: awx_sdist_builder
     state: started
@@ -95,6 +97,8 @@
 
 - name: Build AWX distribution locally
   shell: make sdist
+  environment:
+    DEV_CONTAINER_RUNTIME: "{{ container_runtime }}"
   args:
     chdir: ..
   delegate_to: localhost
@@ -202,7 +206,7 @@
   delegate_to: localhost
 
 - name: Build base awx image (podman)
-  containers.podman.podman:
+  containers.podman.podman_image:
     path: "{{ role_path }}"
     pull: false
     name: "{{ awx_image }}:{{ awx_version }}"
