@@ -219,7 +219,7 @@
 
 - name: Build base awx image (podman)
   containers.podman.podman_image:
-    path: "{{ role_path }}"
+    path: "{{ container_base_path }}"
     pull: false
     name: "{{ awx_image }}:{{ awx_version }}"
     state: 'build'
