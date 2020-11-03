@@ -73,7 +73,7 @@ host_port_ssl=443
 #ssl_certificate=
 # Optional key file
 #ssl_certificate_key=
-container_compose_dir="~/.awx/awxcompose"
+docker_compose_dir="~/.awx/awxcompose"
 
 
 # Required for Openshift when building the image on your own
@@ -173,7 +173,7 @@ secret_key=awxsecret
 #extra_nginx_include="/etc/nginx/awx_extra[.]conf"
 
 # Docker compose explicit subnet. Set to avoid overlapping your existing LAN networks.
-#container_compose_subnet="172.17.0.1/16"
+#docker_compose_subnet="172.17.0.1/16"
 #
 # Allow for different docker logging drivers
 # By Default; the logger will be json-file, however you can override

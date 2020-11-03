@@ -502,7 +502,7 @@ Before starting the install process, review the [inventory](./installer/inventor
 
 > Optionally, provide the path to a file that contains a certificate and its private key. This needs to be a .pem-file
 
-*container_compose_dir*
+*docker_compose_dir*
 
 > When using docker-compose or podman-compose, the `docker-compose.yml` file will be created there (default `/tmp/awxcompose`).
 
