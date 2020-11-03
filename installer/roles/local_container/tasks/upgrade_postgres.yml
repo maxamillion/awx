@@ -22,15 +22,21 @@
   with_items:
     - "{{ postgres_data_dir }}/10/data"
 
-- name: Stop AWX before upgrading postgres
+- name: Stop AWX before upgrading postgres (docker)
   docker_service:
     project_src: "{{ docker_compose_dir }}"
     stopped: true
-  when: upgrade_postgres | bool
+  when: (upgrade_postgres | bool ) and (container_runtime == 'docker')
+
+- name: Stop AWX before upgrading postgres (podman)
+  shell: podman-compose stop
+  args:
+    chdir: "{{ docker_compose_dir }}"
+  when: (upgrade_postgres | bool ) and (container_runtime == 'podman')
 
 - name: Upgrade Postgres
   shell: |
-    docker run --rm \
+    {{container_runtime}} run --rm \
       -v {{ postgres_data_dir }}/pgdata:/var/lib/postgresql/9.6/data \
       -v {{ postgres_data_dir }}/10/data:/var/lib/postgresql/10/data \
       -e PGUSER={{ pg_username }} -e POSTGRES_INITDB_ARGS="-U {{ pg_username }}" \

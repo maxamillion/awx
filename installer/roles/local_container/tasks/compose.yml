@@ -62,7 +62,7 @@
       shell: "podman-compose start && touch 'podman_compose_statusfile'"
       args:
         chdir: "{{ docker_compose_dir }}"
-      when: not podman_compose_statusfile_stat.exists and (awx_compose_config is changed or awx_secret_key is changed)
+      when: (not podman_compose_statusfile_stat.exists) and (awx_compose_config is changed or awx_secret_key is changed)
       register: awx_compose_start
 
     - name: Restart the containers
