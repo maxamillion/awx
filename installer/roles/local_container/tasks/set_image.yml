@@ -1,5 +1,5 @@
 ---
-- name: Manage AWX Container Images
+- name: Manage AWX Container Images (docker)
   block:
     - name: Export Docker awx image if it isnt local and there isnt a registry defined
       docker_image:
@@ -11,26 +11,26 @@
 
     - name: Set docker base path
       set_fact:
-        docker_deploy_base_path: "{{ awx_base_path|default('/tmp') }}/docker_deploy"
+        container_deploy_base_path: "{{ awx_base_path|default('/tmp') }}/container_deploy"
       when: ansible_connection != "local" and container_registry is not defined
 
     - name: Ensure directory exists
       file:
-        path: "{{ docker_deploy_base_path }}"
+        path: "{{ container_deploy_base_path }}"
         state: directory
       when: ansible_connection != "local" and container_registry is not defined
 
     - name: Copy awx image to docker execution
       copy:
         src: "{{ awx_local_base_config_path|default('/tmp') }}/{{ awx_image }}_{{ awx_version }}.tar"
-        dest: "{{ docker_deploy_base_path }}/{{ awx_image }}_{{ awx_version }}.tar"
+        dest: "{{ container_deploy_base_path }}/{{ awx_image }}_{{ awx_version }}.tar"
       when: ansible_connection != "local" and container_registry is not defined
 
     - name: Load awx image
       docker_image:
         name: "{{ awx_image }}"
         tag: "{{ awx_version }}"
-        load_path: "{{ docker_deploy_base_path }}/{{ awx_image }}_{{ awx_version }}.tar"
+        load_path: "{{ container_deploy_base_path }}/{{ awx_image }}_{{ awx_version }}.tar"
         timeout: 300
       when: ansible_connection != "local" and container_registry is not defined
 
@@ -38,9 +38,47 @@
       set_fact:
         awx_docker_actual_image: "{{ awx_image }}:{{ awx_version }}"
       when: container_registry is not defined
-  when: dockerhub_base is not defined
+  when: (containerhub_base is not defined) and (container_runtime == 'docker')
+
+- name: Manage AWX Container Images (podman)
+  block:
+    - name: Export podman awx image if it isnt local and there isnt a registry defined
+      containers.podman.podman_image:
+        name: "{{ awx_image }}:{{ awx_version }}"
+        push_args:
+          dest: "{{ awx_local_base_config_path|default('/tmp') }}/{{ awx_image }}_{{ awx_version }}.tar"
+          trasnport: 'archive'
+      when: inventory_hostname != "localhost" and container_registry is not defined
+      delegate_to: localhost
+
+    - name: Set podman base path
+      set_fact:
+        container_deploy_base_path: "{{ awx_base_path|default('/tmp') }}/container_deploy"
+      when: ansible_connection != "local" and container_registry is not defined
+
+    - name: Ensure directory exists
+      file:
+        path: "{{ container_deploy_base_path }}"
+        state: directory
+      when: ansible_connection != "local" and container_registry is not defined
+
+    - name: Copy awx image to podman execution
+      copy:
+        src: "{{ awx_local_base_config_path|default('/tmp') }}/{{ awx_image }}_{{ awx_version }}.tar"
+        dest: "{{ container_deploy_base_path }}/{{ awx_image }}_{{ awx_version }}.tar"
+      when: ansible_connection != "local" and container_registry is not defined
+
+    - name: Load awx image
+      shell: "podman import {{ container_deploy_base_path }}/{{ awx_image }}_{{ awx_version }}.tar {{ awx_image }}:{{ awx_version }}"
+      when: ansible_connection != "local" and container_registry is not defined
+
+    - name: Set full image path for local install
+      set_fact:
+        awx_docker_actual_image: "{{ awx_image }}:{{ awx_version }}"
+      when: container_registry is not defined
+  when: (containerhub_base is not defined) and (container_runtime == 'podman')
 
 - name: Set DockerHub Image Paths
   set_fact:
-    awx_docker_actual_image: "{{ dockerhub_base }}/awx:{{ dockerhub_version }}"
-  when: dockerhub_base is defined
+    awx_docker_actual_image: "{{ containerhub_base }}/awx:{{ containerhub_version }}"
+  when: containerhub_base is defined
