@@ -10,3 +10,4 @@ collections:
   - name: ovirt.ovirt
   - name: community.kubernetes  # required for isolated management playbooks
   - name: ansible.posix  # required for isolated management playbooks
+  - name: containers.podman
