@@ -60,12 +60,24 @@
   delegate_to: localhost
   when: use_container_for_build|default(true)|bool and (container_runtime == 'docker')
 
-- name: Build sdist builder image (podman)
-  containers.podman.podman_image:
-    path: "{{ role_path }}/files"
-    pull: false
-    name: "awx_sdist_builder:{{ awx_version }}"
-    state: 'build'
+- name: BLOCK Build sdist builder image (podman)
+  block:
+    - name: Copy Dockerfile.sdist to Dockerfile for podman
+      copy:
+        src: "{{ role_path }}/files/Dockerfile.sdist"
+        dest: "{{ role_path }}/files/Dockerfile"
+
+    - name: Build sdist builder image (podman)
+      containers.podman.podman_image:
+        path: "{{ role_path }}/files/"
+        pull: false
+        name: "awx_sdist_builder:{{ awx_version }}"
+        state: 'build'
+
+    - name: Remove sdist Dockerfile from podman build
+      copy:
+        src: "{{ role_path }}/files/Dockerfile.sdist"
+        dest: "{{ role_path }}/files/Dockerfile"
   delegate_to: localhost
   when: use_container_for_build|default(true)|bool and (container_runtime == 'podman')
 
