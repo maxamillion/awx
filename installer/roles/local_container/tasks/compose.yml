@@ -59,7 +59,7 @@
 
     - name: pull container images
       containers.podman.podman_image:
-        name: "ansible/{{ docker_compose_services[item]['container_name'] }}"
+        name: "ansible/{{ docker_compose_services['services'][item]['container_name'] }}"
       loop: "{{ docker_compose_services['services'].keys() | list }}"
 
     - name: check for status file
