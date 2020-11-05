@@ -52,21 +52,29 @@
   when: compose_start_containers|bool and container_runtime == 'docker'
 
 - block:
-    # FIXME - need to sortout the start/restart logic here
+    # F.IXME - need to sortout the start/restart logic here
+    - name: setfact services
+      set_fact:
+        docker_compose_services: "{{ lookup('file', docker_compose_dir+'/docker-compose.yml') | from_yaml }}"
+
+    - name: testing
+      debug:
+        msg: ""
+
     - name: check for status file
       stat:
         path: "{{ docker_compose_dir }}/podman_compose_statusfile"
       register: podman_compose_statusfile_stat
 
     - name: Start the containers
-      shell: "podman-compose start && touch 'podman_compose_statusfile'"
+      shell: "podman-compose start {{ docker_compose_services['services'].keys() | join(' ') }} && touch 'podman_compose_statusfile'"
       args:
         chdir: "{{ docker_compose_dir }}"
       when: (not podman_compose_statusfile_stat.stat.exists) and (awx_compose_config is changed or awx_secret_key is changed)
       register: awx_compose_start
 
     - name: Restart the containers
-      shell: "podman-compose start && touch 'podman_compose_statusfile'"
+      shell: "podman-compose start {{ docker_compose_services['services'].keys() | join(' ') }} && touch 'podman_compose_statusfile'"
       args:
         chdir: "{{ docker_compose_dir }}"
       when: podman_compose_statusfile_stat.stat.exists and (awx_compose_config is changed or awx_secret_key is changed)
