@@ -43,11 +43,11 @@
       register: awx_compose_start
 
     - name: Update CA trust in awx_web container
-      command: "{{ container_runtime }}" exec awx_web '/usr/bin/update-ca-trust'
+      command: "{{ container_runtime }} exec awx_web '/usr/bin/update-ca-trust'"
       when: awx_compose_config.changed or awx_compose_start.changed
 
     - name: Update CA trust in awx_task container
-      command: "{{ container_runtime }}" exec awx_task '/usr/bin/update-ca-trust'
+      command: "{{ container_runtime }} exec awx_task '/usr/bin/update-ca-trust'"
       when: awx_compose_config.changed or awx_compose_start.changed
   when: compose_start_containers|bool and container_runtime == 'docker'
 
@@ -82,10 +82,10 @@
       register: awx_compose_start
 
     - name: Update CA trust in awx_web container
-      command: "{{ container_runtime }}" exec awx_web '/usr/bin/update-ca-trust'
+      command: "{{ container_runtime }} exec awx_web '/usr/bin/update-ca-trust'"
       when: awx_compose_config.changed or awx_compose_start.changed
 
     - name: Update CA trust in awx_task container
-      command: "{{ container_runtime }}" exec awx_task '/usr/bin/update-ca-trust'
+      command: "{{ container_runtime }} exec awx_task '/usr/bin/update-ca-trust'"
       when: awx_compose_config.changed or awx_compose_start.changed
   when: compose_start_containers|bool and container_runtime == 'podman'
