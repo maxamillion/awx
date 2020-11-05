@@ -43,11 +43,11 @@
       register: awx_compose_start
 
     - name: Update CA trust in awx_web container
-      command: docker exec awx_web '/usr/bin/update-ca-trust'
+      command: "{{ container_runtime }}" exec awx_web '/usr/bin/update-ca-trust'
       when: awx_compose_config.changed or awx_compose_start.changed
 
     - name: Update CA trust in awx_task container
-      command: docker exec awx_task '/usr/bin/update-ca-trust'
+      command: "{{ container_runtime }}" exec awx_task '/usr/bin/update-ca-trust'
       when: awx_compose_config.changed or awx_compose_start.changed
   when: compose_start_containers|bool and container_runtime == 'docker'
 
@@ -57,9 +57,10 @@
       set_fact:
         docker_compose_services: "{{ lookup('file', docker_compose_dir+'/docker-compose.yml') | from_yaml }}"
 
-    - name: testing
-      debug:
-        msg: ""
+    - name: pull container images
+      containers.podman.podman_image:
+        name: "ansible/{{ docker_compose_services[item]['container_name'] }}"
+      loop: "{{ docker_compose_services['services'].keys() }}"
 
     - name: check for status file
       stat:
@@ -81,10 +82,10 @@
       register: awx_compose_start
 
     - name: Update CA trust in awx_web container
-      command: docker exec awx_web '/usr/bin/update-ca-trust'
+      command: "{{ container_runtime }}" exec awx_web '/usr/bin/update-ca-trust'
       when: awx_compose_config.changed or awx_compose_start.changed
 
     - name: Update CA trust in awx_task container
-      command: docker exec awx_task '/usr/bin/update-ca-trust'
+      command: "{{ container_runtime }}" exec awx_task '/usr/bin/update-ca-trust'
       when: awx_compose_config.changed or awx_compose_start.changed
   when: compose_start_containers|bool and container_runtime == 'podman'
