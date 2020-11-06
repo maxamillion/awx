@@ -1,0 +1,165 @@
+# Generation of Kubernetes YAML is still under development!
+#
+# Save the output of this file and use kubectl create -f to import
+# it into Kubernetes.
+#
+# Created with podman-1.6.4
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: awx-pod
+  name: awx-pod
+spec:
+  containers:
+  - command:
+    - postgres
+    name: awxpostgres
+    image: docker.io/library/postgres:10
+    env:
+    - name: HOSTNAME
+      value: awx-pod
+    - name: PG_MAJOR
+      value: "10"
+    - name: POSTGRES_USER
+      value: awx
+    - name: POSTGRES_DB
+      value: awx
+    - name: http_proxy
+    - name: no_proxy
+    - name: https_proxy
+    - name: PGDATA
+      value: /var/lib/postgresql/data
+    - name: POSTGRES_PASSWORD
+      value: awxpass
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      readOnlyRootFilesystem: false
+    volumeMounts:
+    - mountPath: /var/lib/postgresql/data
+      name: root-.awx-pgcontainer-10-data
+    workingDir: /
+  - command:
+    - redis-server
+    name: awxredis
+    image: docker.io/library/redis:latest
+    env:
+    - name: HOSTNAME
+      value: awx-pod
+    - name: no_proxy
+    - name: http_proxy
+    - name: https_proxy
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      readOnlyRootFilesystem: false
+    volumeMounts:
+    - mountPath: /usr/local/etc/redis/redis.conf
+      name: root-.awx-awxcompose-redis.conf
+      readOnly: true
+    - mountPath: /var/run/redis
+      name: root-.awx-awxcompose-redis_socket
+    workingDir: /data
+  - command:
+    - /usr/bin/launch_awx_task.sh
+    name: awxtask
+    image: docker.io/ansible/awx:15.0.1
+    env:
+    - name: HOSTNAME
+      value: awx
+    - name: HOME
+      value: /var/lib/awx
+    - name: https_proxy
+    - name: no_proxy
+    - name: SUPERVISOR_WEB_CONFIG_PATH
+      value: /etc/supervisord.conf
+    - name: LANG
+      value: en_US.UTF-8
+    - name: http_proxy
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      readOnlyRootFilesystem: false
+      runAsUser: 0
+    volumeMounts:
+    - mountPath: /etc/tower/SECRET_KEY
+      name: root-.awx-awxcompose-SECRET_KEY
+    - mountPath: /etc/tower/conf.d/environment.sh
+      name: root-.awx-awxcompose-environment.sh
+    - mountPath: /etc/tower/conf.d/credentials.py
+      name: root-.awx-awxcompose-credentials.py
+    - mountPath: /var/run/redis
+      name: root-.awx-awxcompose-redis_socket
+    workingDir: /
+  - command:
+    - /bin/sh
+    - -c
+    - /usr/bin/launch_awx.sh
+    name: awxweb
+    image: docker.io/ansible/awx:15.0.1
+    env:
+    - name: HOSTNAME
+      value: awxweb
+    - name: HOME
+      value: /var/lib/awx
+    - name: http_proxy
+    - name: https_proxy
+    - name: no_proxy
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      readOnlyRootFilesystem: false
+      runAsUser: 0
+    volumeMounts:
+    - mountPath: /etc/nginx/nginx.conf
+      name: root-.awx-awxcompose-nginx.conf
+      readOnly: true
+    - mountPath: /var/run/redis
+      name: root-.awx-awxcompose-redis_socket
+    - mountPath: /etc/tower/SECRET_KEY
+      name: root-.awx-awxcompose-SECRET_KEY
+    - mountPath: /etc/tower/conf.d/environment.sh
+      name: root-.awx-awxcompose-environment.sh
+    - mountPath: /etc/tower/conf.d/credentials.py
+      name: root-.awx-awxcompose-credentials.py
+    workingDir: /
+  volumes:
+  - hostPath:
+      path: /root/.awx/pgcontainer/10/data
+      type: Directory
+    name: root-.awx-pgcontainer-10-data
+  - hostPath:
+      path: /root/.awx/awxcompose/redis.conf
+      type: File
+    name: root-.awx-awxcompose-redis.conf
+  - hostPath:
+      path: /root/.awx/awxcompose/redis_socket
+      type: Directory
+    name: root-.awx-awxcompose-redis_socket
+  - hostPath:
+      path: /root/.awx/awxcompose/SECRET_KEY
+      type: File
+    name: root-.awx-awxcompose-SECRET_KEY
+  - hostPath:
+      path: /root/.awx/awxcompose/environment.sh
+      type: File
+    name: root-.awx-awxcompose-environment.sh
+  - hostPath:
+      path: /root/.awx/awxcompose/credentials.py
+      type: File
+    name: root-.awx-awxcompose-credentials.py
+  - hostPath:
+      path: /root/.awx/awxcompose/nginx.conf
+      type: File
+    name: root-.awx-awxcompose-nginx.conf
+status: {}
+
