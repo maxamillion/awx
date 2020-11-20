@@ -29,7 +29,7 @@ This document provides a guide for installing AWX.
     + [Post-install](#post-install-1)
     + [Accessing AWX](#accessing-awx-1)
     + [SSL Termination](#ssl-termination)
-  * [Docker-Compose / Podman-Compose](#docker-compose-/-podman-compose)
+  * [Docker-Compose](#docker-compose-)
     + [Prerequisites](#prerequisites-3)
     + [Pre-install steps](#pre-install-steps-2)
       - [Deploying to a remote host](#deploying-to-a-remote-host)
@@ -437,11 +437,11 @@ If your provider is able to allocate an IP Address from the Ingress controller t
 Unlike Openshift's `Route` the Kubernetes `Ingress` doesn't yet handle SSL termination. As such the default configuration will only expose AWX through HTTP on port 80. You are responsible for configuring SSL support until support is added (either to Kubernetes or AWX itself).
 
 
-## Docker-Compose / Podman-Compose
+## Docker-Compose
 
 ### Prerequisites
 
-Select either one of the following combinations (`docker`/`docker-compose` or `podman`/`podman-compose` based on your choice of container runtime. If you don't know or don't have one, selecting `docker`/`docker-compose` is what you should pick as it's the most popular and most broadly compatible container runtime at the time of this writing.:
+Select either one of the following `docker`/`docker-compose` or `podman`based on your choice of container runtime. If you don't know or don't have one, selecting `docker`/`docker-compose` is what you should pick as it's the most popular and most broadly compatible container runtime at the time of this writing.:
 
 For Docker:
 - [Docker](https://docs.docker.com/engine/installation/) on the host where AWX will be deployed. After installing Docker, the Docker service must be started (depending on your OS, you may have to add the local user that uses Docker to the ``docker`` group, refer to the documentation for details)
@@ -451,7 +451,6 @@ For Docker:
 
 For Podman:
 - [Podman](https://podman.io) on the host where AWX will be deployed. 
-- [podman-compose](https://github.com/containers/podman-compose) utility.
 
 ### Pre-install steps
 
@@ -504,7 +503,7 @@ Before starting the install process, review the [inventory](./installer/inventor
 
 *docker_compose_dir*
 
-> When using docker-compose or podman-compose, the `docker-compose.yml` file will be created there (default `/tmp/awxcompose`).
+> When using docker-compose or podman the `docker-compose.yml` or podman `podman-kube-pod.yml` file will be created there (default `/tmp/awxcompose`).
 
 *custom_venv_dir*
 
@@ -579,9 +578,11 @@ $ ansible-playbook -i inventory -e container_registry_password=password install.
 
 ### Post-install
 
-After the playbook run completes, Docker starts a series of containers that provide the services that make up AWX.  You can view the running containers using the `docker ps` or `podman ps` command, depending on your container runtime choice.
+After the playbook run completes, The container runtime starts a series of containers that provide the services that make up AWX.  You can view the running containers using the `docker ps` or `podman ps` command, depending on your container runtime choice.
 
-If you're deploying using Docker Compose or Podman Compose, container names will be prefixed by the name of the folder where the docker-compose.yml file is created (by default, `awx`).
+Note that for `podman` we are utilizing the `podman` [pod](http://docs.podman.io/en/latest/pod.html) capabilities, this is based on the [Kubernetes](https://kubernetes.io/) [Pod](https://kubernetes.io/docs/concepts/workloads/pods/) concept. The status of the pod can be viewed with `podman pod ps`
+
+If you're deploying using Docker Compose, container names will be prefixed by the name of the folder where the docker-compose.yml file is created (by default, `awx`).
 
 Immediately after the containers start, the *awx_task* container will perform required setup tasks, including database migrations. These tasks need to complete before the web interface can be accessed. To monitor the progress, you can follow the container's STDOUT by running the following:
 
