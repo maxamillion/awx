@@ -20,6 +20,8 @@
       mode: "0600"
     - file: credentials.py
       mode: "0600"
+    - file: podman-kube-pod.yml
+      mode: "0600"
     - file: docker-compose.yml
       mode: "0600"
     - file: nginx.conf
@@ -52,33 +54,21 @@
   when: compose_start_containers|bool and container_runtime == 'docker'
 
 - block:
-    # F.IXME - need to sortout the start/restart logic here
-    - name: setfact services
-      set_fact:
-        docker_compose_services: "{{ lookup('file', docker_compose_dir+'/docker-compose.yml') | from_yaml }}"
+    - name: Check for the pod
+      shell: "podman pod ps"
+      register: podman_pod_ps_out
 
-    - name: pull container images
-      containers.podman.podman_image:
-        name: "{{ docker_compose_services['services'][item]['image'] }}"
-      loop: "{{ docker_compose_services['services'].keys() | list }}"
-
-    - name: check for status file
-      stat:
-        path: "{{ docker_compose_dir }}/podman_compose_statusfile"
-      register: podman_compose_statusfile_stat
-
-    - name: Start the containers
-      shell: "podman-compose start {{ docker_compose_services['services'].keys() | join(' ') }} && touch 'podman_compose_statusfile'"
+    - name: Create the pod if it doesn't exist
+      shell: "podman play kube podman-kube-pod.yml"
       args:
         chdir: "{{ docker_compose_dir }}"
-      when: (not podman_compose_statusfile_stat.stat.exists) and (awx_compose_config is changed or awx_secret_key is changed)
-      register: awx_compose_start
+      when: '"awxpod" not in podman_pod_ps_out.stdout'
 
     - name: Restart the containers
-      shell: "podman-compose start {{ docker_compose_services['services'].keys() | join(' ') }} && touch 'podman_compose_statusfile'"
+      shell: "podman pod restart awx-pod"
       args:
         chdir: "{{ docker_compose_dir }}"
-      when: podman_compose_statusfile_stat.stat.exists and (awx_compose_config is changed or awx_secret_key is changed)
+      when: (awx_compose_config is changed) or (awx_secret_key is changed)
       register: awx_compose_start
 
     - name: Update CA trust in awx_web container

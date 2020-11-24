@@ -29,7 +29,7 @@
   when: (upgrade_postgres | bool ) and (container_runtime == 'docker')
 
 - name: Stop AWX before upgrading postgres (podman)
-  shell: podman-compose stop
+  shell: podman pod stop awx-pod
   args:
     chdir: "{{ docker_compose_dir }}"
   when: (upgrade_postgres | bool ) and (container_runtime == 'podman')
