@@ -54,9 +54,27 @@
   when: compose_start_containers|bool and container_runtime == 'docker'
 
 - block:
+    - name: Ensure required files exist
+      file:
+        path: "{{ docker_compose_dir }}/{{ item }}"
+        state: touch
+      loop:
+        - supervisor-socket
+
+    - name: Ensure required directories exist
+      file:
+        path: "{{ docker_compose_dir }}/{{ item }}/"
+        state: directory
+      loop:
+        - rsyslog-socket
+        - rsyslog-config
+
     - name: Check for the pod
       shell: "podman pod ps"
       register: podman_pod_ps_out
+
+    - debug:
+        var: podman_pod_ps_out
 
     - name: Create the pod if it doesn't exist
       shell: "podman play kube podman-kube-pod.yml"
@@ -68,7 +86,7 @@
       shell: "podman pod rm awx-pod && podman play kube podman-kube-pod.yml"
       args:
         chdir: "{{ docker_compose_dir }}"
-      when: '("awx-pod" not in podman_pod_ps_out.stdout) and (awx_compose_config is changed)'
+      when: '("awx-pod" in podman_pod_ps_out.stdout) and (awx_compose_config is changed)'
       register: awx_compose_start
 
     - name: Restart the containers

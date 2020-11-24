@@ -32,22 +32,22 @@ spec:
       runAsUser: 0
     volumeMounts:
     - mountPath: /var/run/supervisor
-      name: awx-supervisor-socket
+      name: awx-supervisor_socket
     - mountPath: /var/run/awx-rsyslog/
-      name: awx-rsyslog-socket-dir
+      name: awx-rsyslog_socket_dir
     - mountPath: /var/lib/awx/rsyslog/
-      name: awx-rsyslog-config-dir
+      name: awx-rsyslog_config_dir
     - mountPath: /etc/nginx/nginx.conf
-      name: awx-nginx.conf
+      name: awx-nginx_conf
       readOnly: true
     - mountPath: /etc/tower/SECRET_KEY
       name: awx-SECRET_KEY
       readOnly: true
     - mountPath: /etc/tower/conf.d/environment.sh
-      name: awx-environment.sh
+      name: awx-environment_sh
       readOnly: true
     - mountPath: /etc/tower/conf.d/credentials.py
-      name: awx-credentials.py
+      name: awx-credentials_py
       readOnly: true
     - mountPath: /var/run/redis
       name: awx-redis_socket
@@ -84,8 +84,6 @@ spec:
       value: {{ awx_task_hostname }}
     - name: HOME
       value: /var/lib/awx
-    - name: https_proxy
-    - name: no_proxy
     - name: SUPERVISOR_WEB_CONFIG_PATH
       value: /etc/supervisord.conf
     - name: LANG
@@ -105,11 +103,11 @@ spec:
       runAsUser: 0
     volumeMounts:
     - mountPath: /etc/tower/SECRET_KEY
-      name: root-.awx-SECRET_KEY
+      name: awx-SECRET_KEY
     - mountPath: /etc/tower/conf.d/environment.sh
-      name: root-.awx-environment.sh
+      name: awx-environment_sh
     - mountPath: /etc/tower/conf.d/credentials.py
-      name: root-.awx-credentials.py
+      name: awx-credentials_py
     - mountPath: /var/run/redis
       name: awx-redis_socket
 {% if project_data_dir is defined %}
@@ -157,7 +155,7 @@ spec:
       readOnlyRootFilesystem: false
     volumeMounts:
     - mountPath: /usr/local/etc/redis/redis.conf
-      name: awx-redis.conf
+      name: awx-redis_conf
       readOnly: true
       type: File
     - mountPath: /var/run/redis
@@ -193,33 +191,33 @@ spec:
       readOnlyRootFilesystem: false
     volumeMounts:
     - mountPath: /var/lib/postgresql/data
-      name: awx-pgcontainer-data
+      name: awx-pgcontainer_data
     workingDir: /
 {% endif %}
   volumes:
   - hostPath:
       path: "{{ docker_compose_dir }}/supervisor-socket"
-      type: Socket
-    name: awx-supervisor-socket
+      type: File
+    name: awx-supervisor_socket
   - hostPath:
-      path: "{{ docker_compose_dir }}/rsyslog-socket"
-      type: DirectoryOrCreate
-    name: awx-rsyslog-socket-dir
+      path: "{{ docker_compose_dir }}/rsyslog-socket/"
+      type: Directory
+    name: awx-rsyslog_socket_dir
   - hostPath:
-      path: "{{ docker_compose_dir }}/rsyslog-config"
-      type: DirectoryOrCreate
-    name: awx-rsyslog-config-dir
+      path: "{{ docker_compose_dir }}/rsyslog-config/"
+      type: Directory
+    name: awx-rsyslog_config_dir
   - hostPath:
       path: "{{ docker_compose_dir }}/pgcontainer/10/data"
       type: Directory
-    name: awx-pgcontainer-data
+    name: awx-pgcontainer_data
   - hostPath:
       path: "{{ docker_compose_dir }}/redis.conf"
       type: File
-    name: awx-redis.conf
+    name: awx-redis_conf
   - hostPath:
       path: "{{ docker_compose_dir }}/redis_socket"
-      type: Socket
+      type: File
     name: awx-redis_socket
   - hostPath:
       path: "{{ docker_compose_dir }}/SECRET_KEY"
@@ -228,15 +226,15 @@ spec:
   - hostPath:
       path: "{{ docker_compose_dir }}/environment.sh"
       type: File
-    name: awx-environment.sh
+    name: awx-environment_sh
   - hostPath:
       path: "{{ docker_compose_dir }}/credentials.py"
       type: File
-    name: awx-credentials.py
+    name: awx-credentials_py
   - hostPath:
       path: "{{ docker_compose_dir }}/nginx.conf"
       type: File
-    name: awx-nginx.conf
+    name: awx-nginx_conf
 {% if project_data_dir is defined %}
   - hostPath:
       path: "{{ project_data_dir }}"
@@ -260,14 +258,12 @@ spec:
       path: "{{ ssl_certificate }}"
       type: File
     name: awx-ssl_certificate
-  - "{{ ssl_certificate +':/etc/nginx/awxweb.pem:ro' }}"
 {% endif %}
 {% if ssl_certificate_key is defined %}
   - hostPath:
       path: "{{ ssl_certificate_key }}"
       type: File
     name: awx-ssl_certificate_key
-  - "{{ ssl_certificate_key +':/etc/nginx/awxweb_key.pem:ro' }}"
 {% endif %}
 status: {}
 
