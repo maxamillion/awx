@@ -14,7 +14,7 @@ spec:
     image: {{ awx_docker_actual_image }}
     env:
     - name: HOSTNAME
-      value: {{ awx_web_hosename }}
+      value: {{ awx_web_hostname }}
     - name: HOME
       value: /var/lib/awx
     - name: http_proxy
@@ -81,7 +81,7 @@ spec:
     image: {{ awx_docker_actual_image }}
     env:
     - name: HOSTNAME
-      value: awx
+      value: {{ awx_task_hostname }}
     - name: HOME
       value: /var/lib/awx
     - name: https_proxy
@@ -163,6 +163,7 @@ spec:
     - mountPath: /var/run/redis
       name: awx-redis_socket
     workingDir: /data
+{% if pg_hostname is not defined %}
   - command:
     - postgres
     name: awxpostgres
@@ -194,6 +195,7 @@ spec:
     - mountPath: /var/lib/postgresql/data
       name: awx-pgcontainer-data
     workingDir: /
+{% endif %}
   volumes:
   - hostPath:
       path: "{{ docker_compose_dir }}/supervisor-socket"
