@@ -13,62 +13,78 @@ metadata:
 spec:
   containers:
   - command:
-    - postgres
-    name: awxpostgres
-    image: docker.io/library/postgres:10
+    - /bin/sh
+    - -c
+    - /usr/bin/launch_awx.sh
+    name: awxweb
+    image: {{ awx_docker_actual_image }}
     env:
     - name: HOSTNAME
-      value: awx-pod
-    - name: PG_MAJOR
-      value: "10"
-    - name: POSTGRES_USER
-      value: awx
-    - name: POSTGRES_DB
-      value: awx
+      value: {{ awx_web_hosename }}
+    - name: HOME
+      value: /var/lib/awx
     - name: http_proxy
-    - name: no_proxy
+      value: {{ http_proxy | default('') }}
     - name: https_proxy
-    - name: PGDATA
-      value: /var/lib/postgresql/data
-    - name: POSTGRES_PASSWORD
-      value: awxpass
+      value: {{ https_proxy | default('') }}
+    - name: no_proxy
+      value: {{ no_proxy | default('') }}
     resources: {}
     securityContext:
       allowPrivilegeEscalation: true
       capabilities: {}
       privileged: false
       readOnlyRootFilesystem: false
+      runAsUser: 0
     volumeMounts:
-    - mountPath: /var/lib/postgresql/data
-      name: root-.awx-pgcontainer-10-data
-    workingDir: /
-  - command:
-    - redis-server
-    name: awxredis
-    image: docker.io/library/redis:latest
-    env:
-    - name: HOSTNAME
-      value: awx-pod
-    - name: no_proxy
-    - name: http_proxy
-    - name: https_proxy
-    resources: {}
-    securityContext:
-      allowPrivilegeEscalation: true
-      capabilities: {}
-      privileged: false
-      readOnlyRootFilesystem: false
-    volumeMounts:
-    - mountPath: /usr/local/etc/redis/redis.conf
-      name: root-.awx-awxcompose-redis.conf
+    - mountPath: /var/run/supervisor
+      name: awx-supervisor-socket
+    - mountPath: /var/run/awx-rsyslog/
+      name: awx-rsyslog-socket-dir
+    - mountPath: /var/lib/awx/rsyslog/
+      name: awx-rsyslog-config-dir
+    - mountPath: /etc/nginx/nginx.conf
+      name: awx-nginx.conf
+      readOnly: true
+    - mountPath: /etc/tower/SECRET_KEY
+      name: awx-SECRET_KEY
+      readOnly: true
+    - mountPath: /etc/tower/conf.d/environment.sh
+      name: awx-environment.sh
+      readOnly: true
+    - mountPath: /etc/tower/conf.d/credentials.py
+      name: awx-credentials.py
       readOnly: true
     - mountPath: /var/run/redis
-      name: root-.awx-awxcompose-redis_socket
-    workingDir: /data
+      name: awx-redis_socket
+{% if project_data_dir is defined %}
+    - mountPath: /var/lib/awx/projects
+      name: awx-project-dir
+{% endif %}
+{% if custom_venv_dir is defined %}
+    - mountPath: "{{ custom_venv_dir }}"
+      name: awx-custom-venv-dir
+{% endif %}
+{% if ca_trust_dir is defined %}
+    - mountPath: /etc/pki/ca-trust/source/anchors
+      name: awx-ca-trust-dir
+      readOnly: true
+{% endif %}
+{% if ssl_certificate is defined %} 
+    - mountPath: /etc/nginx/awxweb.pem
+      name: awx-ssl_certificate
+      readOnly: true
+{% endif %}
+{% if ssl_certificate_key is defined %}
+    - mountPath: /etc/nginx/awxweb_key.pem
+      name: awx-ssl_certificate_key
+      readOnly: true
+{% endif %}
+    workingDir: /
   - command:
     - /usr/bin/launch_awx_task.sh
     name: awxtask
-    image: docker.io/ansible/awx:15.0.1
+    image: {{ awx_docker_actual_image }}
     env:
     - name: HOSTNAME
       value: awx
@@ -81,37 +97,11 @@ spec:
     - name: LANG
       value: en_US.UTF-8
     - name: http_proxy
-    resources: {}
-    securityContext:
-      allowPrivilegeEscalation: true
-      capabilities: {}
-      privileged: false
-      readOnlyRootFilesystem: false
-      runAsUser: 0
-    volumeMounts:
-    - mountPath: /etc/tower/SECRET_KEY
-      name: root-.awx-awxcompose-SECRET_KEY
-    - mountPath: /etc/tower/conf.d/environment.sh
-      name: root-.awx-awxcompose-environment.sh
-    - mountPath: /etc/tower/conf.d/credentials.py
-      name: root-.awx-awxcompose-credentials.py
-    - mountPath: /var/run/redis
-      name: root-.awx-awxcompose-redis_socket
-    workingDir: /
-  - command:
-    - /bin/sh
-    - -c
-    - /usr/bin/launch_awx.sh
-    name: awxweb
-    image: {{ awx_docker_actual_image }}
-    env:
-    - name: HOSTNAME
-      value: {{ awx_web_hosename }}
-    - name: HOME
-      value: /var/lib/awx
-    - name: http_proxy
+      value: {{ http_proxy | default('') }}
     - name: https_proxy
+      value: {{ https_proxy | default('') }}
     - name: no_proxy
+      value: {{ no_proxy | default('') }}
     resources: {}
     securityContext:
       allowPrivilegeEscalation: true
@@ -120,71 +110,168 @@ spec:
       readOnlyRootFilesystem: false
       runAsUser: 0
     volumeMounts:
-    - mountPath: /etc/nginx/nginx.conf
-      name: root-.awx-awxcompose-nginx.conf
-      readOnly: true
-    - mountPath: /var/run/redis
-      name: awx-awxcompose-redis_socket
     - mountPath: /etc/tower/SECRET_KEY
-      name: awx-awxcompose-SECRET_KEY
+      name: root-.awx-SECRET_KEY
     - mountPath: /etc/tower/conf.d/environment.sh
-      name: awx-awxcompose-environment.sh
+      name: root-.awx-environment.sh
     - mountPath: /etc/tower/conf.d/credentials.py
-      name: awx-awxcompose-credentials.py
+      name: root-.awx-credentials.py
+    - mountPath: /var/run/redis
+      name: awx-redis_socket
 {% if project_data_dir is defined %}
     - mountPath: /var/lib/awx/projects
       name: awx-project-dir
 {% endif %}
+{% if custom_venv_dir is defined %}
+    - mountPath: "{{ custom_venv_dir }}"
+      name: awx-custom-venv-dir
+{% endif %}
+{% if ca_trust_dir is defined %}
+    - mountPath: /etc/pki/ca-trust/source/anchors
+      name: awx-ca-trust-dir
+      readOnly: true
+{% endif %}
+{% if ssl_certificate is defined %} 
+    - mountPath: /etc/nginx/awxweb.pem
+      name: awx-ssl_certificate
+      readOnly: true
+{% endif %}
+{% if ssl_certificate_key is defined %}
+    - mountPath: /etc/nginx/awxweb_key.pem
+      name: awx-ssl_certificate_key
+      readOnly: true
+{% endif %}
+    workingDir: /
+  - command:
+    - redis-server
+    name: awxredis
+    image: {{ redis_image }}
+    env:
+    - name: HOSTNAME
+      value: awx-pod
+    - name: http_proxy
+      value: {{ http_proxy | default('') }}
+    - name: https_proxy
+      value: {{ https_proxy | default('') }}
+    - name: no_proxy
+      value: {{ no_proxy | default('') }}
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      readOnlyRootFilesystem: false
+    volumeMounts:
+    - mountPath: /usr/local/etc/redis/redis.conf
+      name: awx-redis.conf
+      readOnly: true
+      type: File
+    - mountPath: /var/run/redis
+      name: awx-redis_socket
+    workingDir: /data
+  - command:
+    - postgres
+    name: awxpostgres
+    image: {{ postgresql_image }}
+    env:
+    - name: HOSTNAME
+      value: awx-pod
+    - name: POSTGRES_USER
+      value: {{ pg_username }}
+    - name: POSTGRES_PASSWORD
+      value: {{ pg_password }}
+    - name: POSTGRES_DB
+      value: {{ pg_database }}
+    - name: http_proxy
+      value: {{ http_proxy | default('') }}
+    - name: https_proxy
+      value: {{ https_proxy | default('') }}
+    - name: no_proxy
+      value: {{ no_proxy | default('') }}
+    - name: PGDATA
+      value: /var/lib/postgresql/data
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      readOnlyRootFilesystem: false
+    volumeMounts:
+    - mountPath: /var/lib/postgresql/data
+      name: awx-pgcontainer-data
     workingDir: /
   volumes:
   - hostPath:
-      path: /{{ docker_compose_dir }}root/.awx/pgcontainer/10/data
+      path: "{{ docker_compose_dir }}/supervisor-socket"
+      type: Socket
+    name: awx-supervisor-socket
+  - hostPath:
+      path: "{{ docker_compose_dir }}/rsyslog-socket"
+      type: DirectoryOrCreate
+    name: awx-rsyslog-socket-dir
+  - hostPath:
+      path: "{{ docker_compose_dir }}/rsyslog-config"
+      type: DirectoryOrCreate
+    name: awx-rsyslog-config-dir
+  - hostPath:
+      path: "{{ docker_compose_dir }}/pgcontainer/10/data"
       type: Directory
-    name: awx-pgcontainer-10-data
+    name: awx-pgcontainer-data
   - hostPath:
-      path: /root/.awx/awxcompose/redis.conf
+    path: "{{ docker_compose_dir }}/redis.conf"
       type: File
-    name: awx-awxcompose-redis.conf
+    name: awx-redis.conf
   - hostPath:
-      path: /root/.awx/awxcompose/redis_socket
-      type: Directory
-    name: awx-awxcompose-redis_socket
+    path: "{{ docker_compose_dir }}/redis_socket"
+      type: Socket
+    name: awx-redis_socket
   - hostPath:
-      path: "{{ docker_compose_dir }}/.awx/awxcompose/SECRET_KEY"
+      path: "{{ docker_compose_dir }}/SECRET_KEY"
       type: File
-    name: awx-awxcompose-SECRET_KEY
+    name: awx-SECRET_KEY
   - hostPath:
-      path: /root/.awx/awxcompose/environment.sh
+    path: "{{ docker_compose_dir }}/environment.sh"
       type: File
-    name: root-.awx-awxcompose-environment.sh
+    name: awx-environment.sh
   - hostPath:
-      path: /root/.awx/awxcompose/credentials.py
+    path: "{{ docker_compose_dir }}/credentials.py"
       type: File
-    name: root-.awx-awxcompose-credentials.py
+    name: awx-credentials.py
   - hostPath:
-      path: /root/.awx/awxcompose/nginx.conf
+    path: "{{ docker_compose_dir }}/nginx.conf"
       type: File
-    name: root-.awx-awxcompose-nginx.conf
+    name: awx-nginx.conf
 {% if project_data_dir is defined %}
   - hostPath:
-      path: "{{ project_data_dir }'/var/lib/awx/projects:rw' }}"
+    path: "{{ project_data_dir }}"
       type: Directory
     name: awx-project-dir
-
-
-
 {% endif %}
 {% if custom_venv_dir is defined %}
-- "{{ custom_venv_dir +':'+ custom_venv_dir +':rw' }}"
+  - hostPath:
+    path: "{{ custom_venv_dir }}"
+      type: Directory
+    name: awx-custom-venv-dir
 {% endif %}
 {% if ca_trust_dir is defined %}
-- "{{ ca_trust_dir +':/etc/pki/ca-trust/source/anchors:ro' }}"
+  - hostPath:
+    path: "{{ ca_trust_dir }}"
+      type: Directory
+    name: awx-ca-trust-dir
 {% endif %}
-{% if (ssl_certificate is defined) and (ssl_certificate_key is defined) %}
-- "{{ ssl_certificate +':/etc/nginx/awxweb.pem:ro' }}"
-- "{{ ssl_certificate_key +':/etc/nginx/awxweb_key.pem:ro' }}"
-{% elif (ssl_certificate is defined) and (ssl_certificate_key is not defined) %}
-- "{{ ssl_certificate +':/etc/nginx/awxweb.pem:ro' }}"
+{% if ssl_certificate is defined %} 
+  - hostPath:
+    path: "{{ ssl_certificate }}"
+      type: File
+    name: awx-ssl_certificate
+  - "{{ ssl_certificate +':/etc/nginx/awxweb.pem:ro' }}"
+{% endif %}
+{% if ssl_certificate_key is defined %}
+  - hostPath:
+    path: "{{ ssl_certificate_key }}"
+      type: File
+    name: awx-ssl_certificate_key
+  - "{{ ssl_certificate_key +':/etc/nginx/awxweb_key.pem:ro' }}"
 {% endif %}
 status: {}
 
