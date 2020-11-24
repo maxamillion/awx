@@ -64,11 +64,18 @@
         chdir: "{{ docker_compose_dir }}"
       when: '"awx-pod" not in podman_pod_ps_out.stdout'
 
+    - name: Restart the pod if pod definition changes
+      shell: "podman pod rm awx-pod && podman play kube podman-kube-pod.yml"
+      args:
+        chdir: "{{ docker_compose_dir }}"
+      when: '("awx-pod" not in podman_pod_ps_out.stdout) and (awx_compose_config is changed)'
+      register: awx_compose_start
+
     - name: Restart the containers
       shell: "podman pod restart awx-pod"
       args:
         chdir: "{{ docker_compose_dir }}"
-      when: (awx_compose_config is changed) or (awx_secret_key is changed)
+      when: awx_secret_key is changed
       register: awx_compose_start
 
     - name: Update CA trust in awx_web container
