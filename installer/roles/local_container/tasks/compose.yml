@@ -62,7 +62,7 @@
       shell: "podman play kube podman-kube-pod.yml"
       args:
         chdir: "{{ docker_compose_dir }}"
-      when: '"awxpod" not in podman_pod_ps_out.stdout'
+      when: '"awx-pod" not in podman_pod_ps_out.stdout'
 
     - name: Restart the containers
       shell: "podman pod restart awx-pod"

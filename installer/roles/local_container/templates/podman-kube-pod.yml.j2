@@ -214,11 +214,11 @@ spec:
       type: Directory
     name: awx-pgcontainer-data
   - hostPath:
-    path: "{{ docker_compose_dir }}/redis.conf"
+      path: "{{ docker_compose_dir }}/redis.conf"
       type: File
     name: awx-redis.conf
   - hostPath:
-    path: "{{ docker_compose_dir }}/redis_socket"
+      path: "{{ docker_compose_dir }}/redis_socket"
       type: Socket
     name: awx-redis_socket
   - hostPath:
@@ -226,45 +226,45 @@ spec:
       type: File
     name: awx-SECRET_KEY
   - hostPath:
-    path: "{{ docker_compose_dir }}/environment.sh"
+      path: "{{ docker_compose_dir }}/environment.sh"
       type: File
     name: awx-environment.sh
   - hostPath:
-    path: "{{ docker_compose_dir }}/credentials.py"
+      path: "{{ docker_compose_dir }}/credentials.py"
       type: File
     name: awx-credentials.py
   - hostPath:
-    path: "{{ docker_compose_dir }}/nginx.conf"
+      path: "{{ docker_compose_dir }}/nginx.conf"
       type: File
     name: awx-nginx.conf
 {% if project_data_dir is defined %}
   - hostPath:
-    path: "{{ project_data_dir }}"
+      path: "{{ project_data_dir }}"
       type: Directory
     name: awx-project-dir
 {% endif %}
 {% if custom_venv_dir is defined %}
   - hostPath:
-    path: "{{ custom_venv_dir }}"
+      path: "{{ custom_venv_dir }}"
       type: Directory
     name: awx-custom-venv-dir
 {% endif %}
 {% if ca_trust_dir is defined %}
   - hostPath:
-    path: "{{ ca_trust_dir }}"
+      path: "{{ ca_trust_dir }}"
       type: Directory
     name: awx-ca-trust-dir
 {% endif %}
 {% if ssl_certificate is defined %} 
   - hostPath:
-    path: "{{ ssl_certificate }}"
+      path: "{{ ssl_certificate }}"
       type: File
     name: awx-ssl_certificate
   - "{{ ssl_certificate +':/etc/nginx/awxweb.pem:ro' }}"
 {% endif %}
 {% if ssl_certificate_key is defined %}
   - hostPath:
-    path: "{{ ssl_certificate_key }}"
+      path: "{{ ssl_certificate_key }}"
       type: File
     name: awx-ssl_certificate_key
   - "{{ ssl_certificate_key +':/etc/nginx/awxweb_key.pem:ro' }}"
